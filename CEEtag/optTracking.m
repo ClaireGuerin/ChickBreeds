@@ -4,7 +4,7 @@ function [trackingData,tags] = optTracking(vidName)
 
 vid = VideoReader(vidName);
 nFrames = vid.NumberOfFrames;
-tags = csvread([vidName,'_tags.csv']);
+tags = csvread([vidName(1:end-4),'_tags.csv']);
 nTags = numel(tags);
 
 xCenter = nan(nFrames, nTags);
