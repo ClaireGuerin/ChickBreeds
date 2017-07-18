@@ -3,8 +3,8 @@
 
 % Get list of video files to analyse
 
-PathName = '/n/regal/debivort_lab/claire/pulcini/Day1/';
-fileList = dir([PathName,'*.avi']);
+PathName = 
+fileList = dir('/n/regal/debivort_lab/claire/pulcini/Day1/*.avi');
 
 % Set up parallel computing
 pc = parcluster('local') ;
@@ -13,7 +13,7 @@ parpool(pc, 32)
 
 % Loop through files and track chicks
 for f = 1:numel(fileList)
-	fileName = [PathName, fileList(f).name];
+	fileName = fileList(f).name;
     
     try
         [trackingData, tags] = optTracking(fileName);
