@@ -11,17 +11,22 @@ pc = parcluster('local') ;
 pc.JobStorageLocation = strcat('/scratch/claire/', getenv('SLURM_JOB_ID'));
 parpool(pc, 32)
 
+w = fopen([PathName,'warnings.txt'],'wt');
+
 % Loop through files and track chicks
 for f = 1:numel(fileList)
-	fileName = [PathName, fileList(f).name];
+    fileName = fileList(f).name;
+	filePath = [PathName, fileName];
     
     try
-        [trackingData, tags] = optTracking(fileName);
+        [trackingData, tags] = optTracking(filePath);
     catch
-        warning(['Tracking failed for file ',fileName,'. Assigning NaNs.']);
+        fprintf(w, ['Tracking failed for file ',filePath,'. Assigning NaNs.\n']);
         trackingData = NaN;
         tags = NaN;
     end
     
     save(strcat(fileName, '_tracked.mat'), 'trackingData', 'tags')
 end
+
+fclose(w);
