@@ -24,10 +24,9 @@ failPercSmooth = trackFail(trackingDataSmooth); % reduced from 16.7% to 2.5% ide
 
 figure
 
-for indiv = 1:size(trackingDataSmooth,2)
-    subplot(3,2,indiv)
-    plot(trackingDataSmooth(:,indiv,1),trackingDataSmooth(:,indiv,2))
-end
+for indiv = 1:size(trackin)
+subplot(3,2,1)
+plot(trackingDataSmooth(:,1,1),trackingDataSmooth(:,1,2))
 
 scaleFactor = 0.115;
 stepwiseDist = nan(size(trackingDataSmooth,1),size(trackingDataSmooth,2),size(trackingDataSmooth,3)/2);
