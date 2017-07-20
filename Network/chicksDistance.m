@@ -14,7 +14,7 @@ nFrames = size(trackingData,1);
 fRate = 1/100; % here distance (cm) travelled between 2 consecutive frames = speed (cm/sec) since the frequency is 1 (1 frame per
 % sec). If used a video subset, change fRate accordingly (e.g. 1/100).
 
-failPercRaw = trackFail(trackingData); % average percentage of frame where individuals are lost - Raw Data 
+failPercRaw = trackFail(trackingData); % average percentage of frame where individuals are lost - Raw Data
 maxGapInSec = 2;
 maxGap = fRate * maxGapInSec;
 trackingDataSmooth = fixShortNanGaps(trackingData,maxGap);
@@ -54,47 +54,68 @@ boxplot(speedFront)
 
 %%
 
-distances = nan(nFrames, 6*5/2);
-trueFrmNum = ceil(linspace(100,10833,100));
+datName = 'g12d1_tracked.mat';
 
-fig = figure('Visible', 'on'); 
+nComb = 6*5/2; % number of individuals combinations, no rep
+distances = nan(nFrames, nComb);
+trueFrmNum = ceil(linspace(100,10833,100)); % this is to use only if the video is a video subset
+
+tagsTable = csvread('taglist.csv');
+tableColumns = string({'Individual','Group','Breed','Pair','Day1','Day2','Day3'});
+group = 12;
+day = ['Day',num2str(1)];
+
+indiv = ismember(tagsTable(:,tableColumns == day),tags) & tagsTable(:,tableColumns == 'Group') == group;
+
+tags = tagsTable(tagsTable(:,tableColumns == 'Group') == 12,tableColumns == day);
+pair = tagsTable(tagsTable(:,tableColumns == 'Group') == 12,tableColumns == 'Pair');
+pairColors = {'k','k','c','c','m','m'};
+pairColors = [[0,0,0];[0,0,0];[0,1,1];[0,1,1];[1,0,1];[1,0,1]];
+
+nodNames = tagsTable(tagsTable(:,tableColumns == 'Group') == group ,1);
+
+fig = figure('Visible', 'on');
 indivPairs = nchoosek(1:6,2);
 
-v = VideoWriter('NetworkTest.avi');
-open(v)
+% v = VideoWriter('NetworkTest.avi');
+% open(v)
 
 for frm = 1:nFrames
-    im = read(vid,frm);
-    x = trackingData(frm,:,1) ;
-    y = trackingData(frm,:,2) ;
+    %     frm = 1;
+    x = trackingDataSmooth(frm,:,1) ;
+    y = trackingDataSmooth(frm,:,2) ;
     
-    distances(frm,:) = pdist([x',y']);
-    
-    G = graph(indivPairs(:, 1),indivPairs(:, 2));
+    distances(frm,:) = pdist([x',y']) * scaleFactor;
+end
 
-    G.Edges.Weight = distances(frm,:)';
-    G2 = rmedge(G,find(isnan(distances(frm,:))));
-    G2.Edges.NormWeight = G2.Edges.Weight/sum(G2.Edges.Weight);
-    LWidths = 5*G2.Edges.Weight/max(G2.Edges.Weight);
-    
-    p = plot(G2,'Layout','circle','EdgeLabel',ceil(G2.Edges.Weight),'LineWidth',LWidths);
-    title(['Frame: ',num2str(trueFrmNum(frm))])
-    axis equal
+
+meanDist = nanmean(distances,1);
+
+G = graph(indivPairs(:, 1),indivPairs(:, 2));
+G.Nodes.Names = string(nodNames);
+G.Nodes.Colors = pairColors;
+
+G.Edges.Weight = meanDist';
+G2 = rmedge(G,find(isnan(meanDist)));
+G2.Edges.NormWeight = G2.Edges.Weight/sum(G2.Edges.Weight);
+LWidths = 5*G2.Edges.Weight/max(G2.Edges.Weight);
+
+p = plot(G2,'Layout','circle','EdgeLabel',ceil(G2.Edges.Weight),'LineWidth',LWidths,'EdgeColor', [105/250,105/250,105/250],'NodeLabel',cellstr(G2.Nodes.Names),'NodeColor',G.Nodes.Colors);
+% title(['Frame: ',num2str(trueFrmNum(frm))])
+axis equal
 
 %     imshow(im)
 %     hold on
 %     plot(x, y)
 %     hold off
 
-    F = getframe(fig);
-    writeVideo(v,F)
-    pause(0.1)
-end
+%     F = getframe(fig);
+%     writeVideo(v,F)
+%     pause(0.1)
 
-close(v)
 
-% G.Nodes.Name = cellstr(string(tags));
+% close(v)
 
-histogram(distances) 
-% seems like the chicks tend to stay in group most of the time. 
-% Outliers (>600px distance) might be due to the distance between chicks at the beginning of the experiment 
+histogram(distances)
+% seems like the chicks tend to stay in group most of the time.
+% Outliers (>600px distance) might be due to the distance between chicks at the beginning of the experiment

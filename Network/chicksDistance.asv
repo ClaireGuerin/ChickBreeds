@@ -24,9 +24,10 @@ failPercSmooth = trackFail(trackingDataSmooth); % reduced from 16.7% to 2.5% ide
 
 figure
 
-for indiv = 1:size(trackin)
-subplot(3,2,1)
-plot(trackingDataSmooth(:,1,1),trackingDataSmooth(:,1,2))
+for indiv = 1:size(trackingDataSmooth,2)
+    subplot(3,2,indiv)
+    plot(trackingDataSmooth(:,indiv,1),trackingDataSmooth(:,indiv,2))
+end
 
 scaleFactor = 0.115;
 stepwiseDist = nan(size(trackingDataSmooth,1),size(trackingDataSmooth,2),size(trackingDataSmooth,3)/2);
@@ -53,30 +54,48 @@ boxplot(speedFront)
 
 %%
 
-distances = nan(nFrames, 6*5/2);
-trueFrmNum = ceil(linspace(100,10833,100));
+datName = 'g12d1_tracked.mat';
+
+nComb = 6*5/2; % number of individuals combinations, no rep
+distances = nan(nFrames, nComb);
+trueFrmNum = ceil(linspace(100,10833,100)); % this is to use only if the video is a video subset
+
+tagsTable = csvread('taglist.csv');
+tableColumns = string({'Individual','Group','Breed','Pair','Day1','Day2','Day3'});
+group = 12;
+day = ['Day',num2str(1)];
+
+indiv = ismember(tagsTable(:,tableColumns == day),tags) & tagsTable(:,tableColumns == 'Group') == group;
+
+tags = tagsTable(tagsTable(:,tableColumns == 'Group') == 12,tableColumns == day);
+pair = tagsTable(tagsTable(:,tableColumns == 'Group') == 12,tableColumns == 'Pair');
+pairColors = {'k','k','c','c','m','m'};
+
+nodNames = tagsTable(tagsTable(:,tableColumns == 'Group') == group ,1);
 
 fig = figure('Visible', 'on'); 
 indivPairs = nchoosek(1:6,2);
 
-v = VideoWriter('NetworkTest.avi');
-open(v)
+% v = VideoWriter('NetworkTest.avi');
+% open(v)
 
 for frm = 1:nFrames
-    im = read(vid,frm);
+    frm = 1;
     x = trackingData(frm,:,1) ;
     y = trackingData(frm,:,2) ;
     
-    distances(frm,:) = pdist([x',y']);
+    distances(frm,:) = pdist([x',y']) * scaleFactor;
     
     G = graph(indivPairs(:, 1),indivPairs(:, 2));
+    G.Nodes.Names = string(nodNames);
+    G.Nodes.Colors = pairColors';
 
     G.Edges.Weight = distances(frm,:)';
     G2 = rmedge(G,find(isnan(distances(frm,:))));
     G2.Edges.NormWeight = G2.Edges.Weight/sum(G2.Edges.Weight);
     LWidths = 5*G2.Edges.Weight/max(G2.Edges.Weight);
     
-    p = plot(G2,'Layout','circle','EdgeLabel',ceil(G2.Edges.Weight),'LineWidth',LWidths);
+    p = plot(G2,'Layout','circle','EdgeLabel',ceil(G2.Edges.Weight),'LineWidth',LWidths,'EdgeColor', [105/250,105/250,105/250],'NodeLabel',cellstr(G2.Nodes.Names),'NodeColor',G.Nodes.Colors);
     title(['Frame: ',num2str(trueFrmNum(frm))])
     axis equal
 
