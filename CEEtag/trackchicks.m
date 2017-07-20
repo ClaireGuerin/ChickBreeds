@@ -8,7 +8,7 @@ fileList = dir([PathName,'*.avi']);
 
 % Set up parallel computing
 pc = parcluster('local') ;
-pc.JobStorageLocation = strcat('/scratch/claire/', getenv('SLURM_JOB_ID'));
+pc.JobStorageLocation = strcat('/scratch/cguerin/', getenv('SLURM_JOB_ID'));
 parpool(pc, 32)
 
 % Loop through files and track chicks
