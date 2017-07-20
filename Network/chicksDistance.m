@@ -57,28 +57,28 @@ boxplot(speedFront)
 datName = 'g12d1_tracked.mat';
 
 nComb = 6*5/2; % number of individuals combinations, no rep
-distances = nan(nFrames, nComb);
 trueFrmNum = ceil(linspace(100,10833,100)); % this is to use only if the video is a video subset
 
 tagsTable = csvread('taglist.csv');
 tableColumns = string({'Individual','Group','Breed','Pair','Day1','Day2','Day3'});
-group = 12;
-day = ['Day',num2str(1)];
+group = str2double(datName(2:end-14));
+day = ['Day',datName(5)];
 
 indiv = ismember(tagsTable(:,tableColumns == day),tags) & tagsTable(:,tableColumns == 'Group') == group;
 
 tags = tagsTable(tagsTable(:,tableColumns == 'Group') == 12,tableColumns == day);
 pair = tagsTable(tagsTable(:,tableColumns == 'Group') == 12,tableColumns == 'Pair');
-pairColors = {'k','k','c','c','m','m'};
+% pairColors = {'k','k','c','c','m','m'};
 pairColors = [[0,0,0];[0,0,0];[0,1,1];[0,1,1];[1,0,1];[1,0,1]];
 
 nodNames = tagsTable(tagsTable(:,tableColumns == 'Group') == group ,1);
-
-fig = figure('Visible', 'on');
 indivPairs = nchoosek(1:6,2);
 
 % v = VideoWriter('NetworkTest.avi');
 % open(v)
+
+fRate = 1/100; % here with the subset, 1 frame captured every 100 second
+distances = nan(nFrames, nComb);
 
 for frm = 1:nFrames
     %     frm = 1;
@@ -88,31 +88,53 @@ for frm = 1:nFrames
     distances(frm,:) = pdist([x',y']) * scaleFactor;
 end
 
+nFirstFrames = 30*60*fRate;
+firstHalfHour = reshape(1:nFirstFrames - rem(nFirstFrames,6),[floor(nFirstFrames/6),6]);
 
-meanDist = nanmean(distances,1);
+nRestFrames = nFrames - 30*60*fRate;
+endExperiment = reshape((30*60*fRate+1):nFrames - rem(nRestFrames,5),[floor(nRestFrames/5),5]);
 
-G = graph(indivPairs(:, 1),indivPairs(:, 2));
-G.Nodes.Names = string(nodNames);
-G.Nodes.Colors = pairColors;
-
-G.Edges.Weight = meanDist';
-G2 = rmedge(G,find(isnan(meanDist)));
-G2.Edges.NormWeight = G2.Edges.Weight/sum(G2.Edges.Weight);
-LWidths = 5*G2.Edges.Weight/max(G2.Edges.Weight);
-
-p = plot(G2,'Layout','circle','EdgeLabel',ceil(G2.Edges.Weight),'LineWidth',LWidths,'EdgeColor', [105/250,105/250,105/250],'NodeLabel',cellstr(G2.Nodes.Names),'NodeColor',G.Nodes.Colors);
-% title(['Frame: ',num2str(trueFrmNum(frm))])
-axis equal
-
-%     imshow(im)
-%     hold on
-%     plot(x, y)
-%     hold off
+figure
+for network = 1:12
+%     network = 1;
+    if network < 7
+        
+        meanDist = nanmean(distances(firstHalfHour(:,network),:),1);
+        graphTitle = ['t = ', num2str(firstHalfHour(end,network)/fRate),' seconds'];
+        
+    elseif network < 12
+        
+        meanDist = nanmean(distances(endExperiment(:,network-6),:),1);
+        graphTitle = [ 't = ', num2str(endExperiment(end,network-6)/fRate), ' seconds'];
+        
+    else
+        
+        meanDist = nanmean(distances,1);
+        graphTitle = 'Overall average network';
+        
+    end
+    
+    G = graph(indivPairs(:, 1),indivPairs(:, 2));
+    G.Nodes.Names = string(nodNames);
+    G.Nodes.Colors = pairColors;
+    
+    G.Edges.Weight = meanDist';
+    G2 = rmedge(G,find(isnan(meanDist)));
+    G2.Edges.NormWeight = G2.Edges.Weight/sum(G2.Edges.Weight);
+    LWidths = 5*G2.Edges.Weight/max(G2.Edges.Weight);
+    
+    subplot(3,4,network)
+    p = plot(G2,'Layout','circle','EdgeLabel',ceil(G2.Edges.Weight),'LineWidth',LWidths,'EdgeColor', [105/250,105/250,105/250],'NodeLabel',cellstr(G2.Nodes.Names),'NodeColor',G.Nodes.Colors);
+    title(graphTitle)
+    axis equal
+    set(gca,'xtick',[],'ytick',[])
+    p.MarkerSize = 10;
+    
+end
 
 %     F = getframe(fig);
 %     writeVideo(v,F)
 %     pause(0.1)
-
 
 % close(v)
 
